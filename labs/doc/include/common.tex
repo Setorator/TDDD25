@@ -1,0 +1,116 @@
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+
+%
+% Graphics
+%
+\usepackage{graphicx}
+\usepackage{xcolor}
+
+\definecolor{alpha}{HTML}{3FA9F5}
+
+%
+% Bibliography
+%
+\usepackage[backend=bibtex,maxnames=5,sorting=none,url=false]{biblatex}
+\usepackage{csquotes}
+
+%
+% Listings
+%
+\usepackage{listings}
+
+\definecolor{background}{HTML}{FAFAFA}
+\definecolor{sign}{HTML}{3FA9F5}
+
+\lstdefinelanguage{fortune}{
+  basicstyle=\ttfamily,
+  basewidth={0.5em,0.5em},
+  backgroundcolor=\color{background},
+  literate=
+   *{\%}{{{\color{alpha}{\%}}}}{1}
+}
+
+\lstdefinelanguage{shell}{
+  basicstyle=\ttfamily,
+  basewidth={0.5em,0.5em},
+  backgroundcolor=\color{background},
+  literate=
+    [*]{\\\$}{{{\color{alpha}{\$}}}}{1}
+       {Command>}{{{\color{alpha}{Command>}}}}{8}
+       {ivan(0)>}{{{\color{alpha}{ivan(0)>}}}}{8}
+       {ivan(1)>}{{{\color{alpha}{ivan(1)>}}}}{8}
+       {ivan(0):RELEASED>}{{{\color{alpha}{ivan(0):RELEASED>}}}}{17}
+       {ivan(0):LOCKED>}{{{\color{alpha}{ivan(0):LOCKED>}}}}{15}
+       {ivan(1):LOCKED>}{{{\color{alpha}{ivan(1):LOCKED>}}}}{15}
+       {ivan(2):LOCKED>}{{{\color{alpha}{ivan(2):LOCKED>}}}}{15}
+}
+
+\lstdefinelanguage{json}{
+  basicstyle=\ttfamily,
+  basewidth={0.5em,0.5em},
+  backgroundcolor=\color{background},
+  literate=
+   *{:}{{{\color{alpha}{:}}}}{1}
+    {,}{{{\color{alpha}{,}}}}{1}
+    {\{}{{{\color{alpha}{\{}}}}{1}
+    {\}}{{{\color{alpha}{\}}}}}{1}
+    {[}{{{\color{alpha}{[}}}}{1}
+    {]}{{{\color{alpha}{]}}}}{1}
+}
+
+\lstnewenvironment{fortune}%
+{\lstset{language=fortune}}%
+{}
+
+\lstnewenvironment{json}%
+{\lstset{language=json}}%
+{}
+
+\lstnewenvironment{shell}%
+{\lstset{language=shell}}%
+{}
+
+%
+% Links
+%
+\usepackage{hyperref}
+\hypersetup{%
+  colorlinks=true,
+  citecolor={alpha},
+  linkcolor={alpha},
+  urlcolor ={alpha}
+}
+
+%
+% Text
+%
+\newcommand{\ie}{i.e.}
+\newcommand{\eg}{e.g.}
+\newcommand{\etc}{etc.}
+
+\newcommand{\fix}{should be modified}
+\newcommand{\leave}{no changes are needed}
+\newcommand{\overwrite}{should contain your previous changes}
+
+\newcommand{\python}{\texttt{Python}}
+\newcommand{\classname}[1]{\texttt{#1}}
+\newcommand{\filename}[1]{\texttt{#1}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+%
+% References
+%
+\newcommand{\sref}[1]{Section~\ref{sec:#1}}
+\newcommand{\tref}[1]{Table~\ref{tab:#1}}
+\newcommand{\fref}[1]{Figure~\ref{fig:#1}}
+
+\newcommand{\slabel}[1]{\label{sec:#1}}
+\newcommand{\tlabel}[1]{\label{tab:#1}}
+\newcommand{\flabel}[1]{\label{fig:#1}}
+
+\newcommand{\slab}[1]{\label{sec:#1}}
+\newcommand{\tlab}[1]{\label{tab:#1}}
+\newcommand{\flab}[1]{\label{fig:#1}}
+
+\newcommand{\aref}[1]{Lab~#1 \cite{description#1}}
