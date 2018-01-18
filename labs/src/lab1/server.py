@@ -114,10 +114,12 @@ class Request(threading.Thread):
                         }
                     }
         """
-        #
-        # Your code here.
-        #
-        pass
+        print(request)
+        value = json.loads(request) 
+        print(value["method"])
+        #return value["method"]
+        test_res = {"result": "Success"}
+        return json.dumps(test_res).encode()
 
     def run(self):
         try:

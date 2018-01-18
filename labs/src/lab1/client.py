@@ -67,10 +67,26 @@ class DatabaseProxy(object):
     # Public methods
 
     def read(self):
-        #
-        # Your code here.
-        #
-        pass
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(self.address)
+        test_val = {"method": "read", "args": []}
+        s.send(json.dumps(test_val).encode())
+
+
+        returnMsg = []
+        bytes_recd = 0
+        while bytes_recd < 3:
+            print("VARV")
+            chunk = s.recv(1024)
+            print("VARV")
+            print('%s',chunk)
+            if chunk == b'':
+                raise RuntimeError("socket connection broken")
+            returnMsg.append(chunk)
+            bytes_recd = bytes_recd + len(chunk)
+            print("VARV")
+        s.close()
+        return "TRE"
 
     def write(self, fortune):
         #
