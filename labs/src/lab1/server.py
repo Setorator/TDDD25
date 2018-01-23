@@ -64,16 +64,26 @@ class Server(object):
     # Public methods
 
     def read(self):
-        #
-        # Your code here.
-        #
-        pass
+        # Acquire read lock before accessing critical data.
+        self.rwlock.read_acquire()
+        
+        tmp = self.db.read()
+        
+        # Release lock when finished with critical data.
+        self.rwlock.read_release()
+
+        return tmp
+        
 
     def write(self, fortune):
-        #
-        # Your code here.
-        #
-        pass
+        # Acquire write lock before accessing critical data.
+        self.rwlock.write_acquire()
+
+        self.db.write(fortune)
+
+        # Release lock when finished with critical data.
+        self.rwlock.write_release()
+
 
 
 class Request(threading.Thread):
@@ -114,12 +124,31 @@ class Request(threading.Thread):
                         }
                     }
         """
-        print(request)
-        value = json.loads(request) 
-        print(value["method"])
-        #return value["method"]
-        test_res = {"result": "Success"}
-        return json.dumps(test_res).encode()
+        
+        try:
+            value = json.loads(request) 
+            if (value["method"] == "read"):
+                res = json.dumps(
+                    {
+                        "result": self.read()
+                    })
+            elif (value["method"] == "write"):
+                self.write(value["args"]);
+                res = json.dumps(
+                    {
+                        "result": self.write()
+                    })
+
+        except Exception as e:
+            res = json.dumps(
+                {
+                    "error": {
+                        "name": type(e),
+                        "args": e.args
+                    }
+                })
+            
+        return res
 
     def run(self):
         try:

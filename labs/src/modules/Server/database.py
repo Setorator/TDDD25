@@ -28,13 +28,11 @@ class Database(object):
     def read(self):
         """Read a random location in the database."""
         return self.fortuneList[self.rand.randint(0, len(self.fortuneList))]
-        pass
 
     def write(self, fortune):
         """Write a new fortune to the database."""
         self.fortuneList.append(fortune)
         self.__update_database(fortune)
-        pass
 
     def __read_from_database(self):
         self.f = open(self.db_file, "r")

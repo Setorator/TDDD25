@@ -66,27 +66,41 @@ class DatabaseProxy(object):
 
     # Public methods
 
+    def server_send(self, request):
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.connect(self.address)
+        self.s.send(request)
+
+    def server_receive(self):
+        res = self.s.recv(2048)
+        self.s.close()
+        return res
+    
     def read(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect(self.address)
-        test_val = {"method": "read", "args": []}
-        s.send(json.dumps(test_val).encode())
+        message = json.dumps(
+            {
+                "method": "read",
+                "args": []
+            })
+        message += "\n"
+        
+        # Send message
+        self.server_send(message)
+        response = self.server_receive()
+        self.s.close()
 
-
-        returnMsg = []
-        bytes_recd = 0
-        while bytes_recd < 3:
-            print("VARV")
-            chunk = s.recv(1024)
-            print("VARV")
-            print('%s',chunk)
-            if chunk == b'':
-                raise RuntimeError("socket connection broken")
-            returnMsg.append(chunk)
-            bytes_recd = bytes_recd + len(chunk)
-            print("VARV")
-        s.close()
-        return "TRE"
+        try:
+            if ("result" in response):
+                return response["result"]
+            elif ("error" in response):
+                e = type
+                raise
+            else:
+                
+        # check for errors
+        # What errors can we get?
+        # What to look for? 
+        
 
     def write(self, fortune):
         #
