@@ -124,21 +124,20 @@ class Request(threading.Thread):
                         }
                     }
         """
-        
         try:
-            value = json.loads(request) 
+            value = json.loads(request)
             if (value["method"] == "read"):
                 res = json.dumps(
                     {
-                        "result": self.read()
-                    })
-            elif (value["method"] == "write"):
-                self.write(value["args"]);
-                res = json.dumps(
-                    {
-                        "result": self.write()
+                        "result": self.db_server.read()
                     })
 
+            elif (value["method"] == "write"):
+                res = json.dumps(
+                    {
+                        "result": self.db_server.write(["args"])
+                    })
+        
         except Exception as e:
             res = json.dumps(
                 {
@@ -146,7 +145,7 @@ class Request(threading.Thread):
                         "name": type(e),
                         "args": e.args
                     }
-                })
+                })        
             
         return res
 

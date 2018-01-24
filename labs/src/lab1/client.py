@@ -54,7 +54,15 @@ server_address = opts.address[0]
 
 
 class CommunicationError(Exception):
-    pass
+    
+    """ Class used for modeling errors occured in the communication between server and client. """
+
+    def __init__(self, type, args):
+        self.type = type
+        self.args = args
+
+    def __str__(self):
+        return self.type    
 
 
 class DatabaseProxy(object):
@@ -69,12 +77,13 @@ class DatabaseProxy(object):
     def server_send(self, request):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect(self.address)
-        self.s.send(request)
+        self.s.send(request.encode())
 
     def server_receive(self):
         res = self.s.recv(2048)
         self.s.close()
-        return res
+        res = json.loads(res.decode())
+        return res 
     
     def read(self):
         message = json.dumps(
@@ -89,19 +98,19 @@ class DatabaseProxy(object):
         response = self.server_receive()
         self.s.close()
 
-        try:
-            if ("result" in response):
-                return response["result"]
-            elif ("error" in response):
-                e = type
-                raise
-            else:
-                
-        # check for errors
-        # What errors can we get?
-        # What to look for? 
         
-
+        if ("result" in response):
+            return response["result"]
+        elif ("error" in response):
+            # Get the type of the error and state it to be a subclass of "Exception"
+            ex = type(response["error"]["name"], (Exception, ), {})
+            # Raise said exception
+            raise ex(response["error"]["args"])
+        else:
+            # If something undefined happened
+            raise CommunicationError("CommunicationError", ["Something went wrong with the communication"])
+            
+        
     def write(self, fortune):
         #
         # Your code here.
