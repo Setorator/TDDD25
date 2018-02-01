@@ -31,7 +31,15 @@ objects that communicate via networks. This infrastructure consists of:
 
 
 class CommunicationError(Exception):
-    pass
+    
+    """ Class used for modeling errors occured in the communication between server and client. """
+
+    def __init__(self, type, args):
+        self.type = type
+        self.args = args
+
+    def __str__(self):
+        return self.type 
 
 
 class Stub(object):
@@ -45,11 +53,45 @@ class Stub(object):
     def __init__(self, address):
         self.address = tuple(address)
 
+    def server_send(self, request):
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.connect(self.address)
+        self.s.send(request.encode())
+
+    def server_receive(self):
+        res = self.s.recv(2048)
+        self.s.close()
+        res = json.loads(res.decode())
+        return res 
+    
+    def remote_method_invokation(self, method, *args):
+        message = json.dumps(
+            {
+                "method": method,
+                "args": args
+            })
+        message += "\n"
+        print(method)
+        print(args)
+        # Send message
+        self.server_send(message)
+        return self.server_receive()
+
+    def handle_server_response(self, response):
+        if ("result" in response):
+            return response["result"]
+        elif ("error" in response):
+            # Get the type of the error and state it to be a subclass of "Exception"
+            ex = type(response["error"]["name"], (Exception, ), {})
+            # Raise said exception
+            raise ex(response["error"]["args"])
+        else:
+            # If something undefined happened
+            raise CommunicationError("CommunicationError", ["Something went wrong with the communication"])
+            
+
     def _rmi(self, method, *args):
-        #
-        # Your code here.
-        #
-        pass
+        return self.handle_server_response(self.remote_method_invokation(method, *args))
 
     def __getattr__(self, attr):
         """Forward call to name over the network at the given address."""
