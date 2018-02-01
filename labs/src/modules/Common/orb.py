@@ -111,12 +111,44 @@ class Request(threading.Thread):
         self.owner = owner
         self.daemon = True
 
-    def run(self):
-        #
-        # Your code here.
-        #
-        pass
+    def process_request(self, request):
+        try:
+            value = json.loads(request)
+            method = getattr(self.owner, value['method'])
+            res = json.dumps(
+                {
+                    "result": method(*value['args'])
+                })
+        
+        except Exception as e:
+            res = json.dumps(
+                {
+                    "error": {
+                        "name": type(e),
+                        "args": e.args
+                    }
+                })        
+            
+        return res
 
+    def run(self):
+        try:
+            # Threat the socket as a file stream.
+            worker = self.conn.makefile(mode="rw")
+            # Read the request in a serialized form (JSON).
+            request = worker.readline()
+            # Process the request.
+            result = self.process_request(request)
+            # Send the result.
+            worker.write(result + '\n')
+            worker.flush()
+        except Exception as e:
+            # Catch all errors in order to prevent the object from crashing
+            # due to bad connections coming from outside.
+            print("The connection to the caller has died:")
+            print("\t{}: {}".format(type(e), e))
+        finally:
+            self.conn.close()
 
 class Skeleton(threading.Thread):
 
@@ -132,17 +164,18 @@ class Skeleton(threading.Thread):
         self.address = address
         self.owner = owner
         self.daemon = True
-        #
-        # Your code here.
-        #
-        pass
+        
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.bind(self.address)
+        self.socket.listen(1)
 
     def run(self):
-        #
-        # Your code here.
-        #
-        pass
-
+        try:
+            conn, addr = self.socket.accept()
+            request = Request(self.owner, conn, addr)
+            request.start()
+        except Exception as e:
+            raise e 
 
 class Peer:
 
