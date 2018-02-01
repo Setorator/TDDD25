@@ -135,7 +135,7 @@ class Request(threading.Thread):
             elif (value["method"] == "write"):
                 res = json.dumps(
                     {
-                        "result": self.db_server.write(["args"])
+                        "result": self.db_server.write(value["args"][0])
                     })
         
         except Exception as e:

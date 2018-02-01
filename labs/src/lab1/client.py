@@ -85,20 +85,19 @@ class DatabaseProxy(object):
         res = json.loads(res.decode())
         return res 
     
-    def read(self):
+    def remote_method_invokation(self, method, args=[]):
         message = json.dumps(
             {
-                "method": "read",
-                "args": []
+                "method": method,
+                "args": args
             })
         message += "\n"
         
         # Send message
         self.server_send(message)
-        response = self.server_receive()
-        self.s.close()
+        return self.server_receive()
 
-        
+    def handle_server_response(self, response):
         if ("result" in response):
             return response["result"]
         elif ("error" in response):
@@ -110,12 +109,17 @@ class DatabaseProxy(object):
             # If something undefined happened
             raise CommunicationError("CommunicationError", ["Something went wrong with the communication"])
             
+
+    def read(self):
+        response = self.remote_method_invokation("read")
+        return self.handle_server_response(response)
         
     def write(self, fortune):
         #
         # Your code here.
         #
-        pass
+        response = self.remote_method_invokation("write", [fortune])
+        return self.handle_server_response(response)
 
 # -----------------------------------------------------------------------------
 # The main program
