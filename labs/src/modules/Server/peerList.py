@@ -36,12 +36,16 @@ class PeerList(object):
 
         self.lock.acquire()
         try:
-            #
-            # Your code here.
-            #
-            pass
+            #self.owner.name_service.unregister(self.owner.id, self.owner.type, self.owner.hash)
+            peers = self.owner.name_service.require_all(self.owner.type)
+            for peer_id, peer_addr in peers:
+                if peer_id < self.owner.id:
+                    self.register_peer(peer_id, peer_addr)
+                    self.peers[peer_id].register_peer(self.owner.id, self.owner.address)
         finally:
+            print(str(self.owner.id) + ' initialized correctly!')
             self.lock.release()
+            
 
     def destroy(self):
         """Unregister this peer from all others in the list."""

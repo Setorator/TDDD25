@@ -77,12 +77,23 @@ class DatabaseProxy(object):
     def server_send(self, request):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect(self.address)
-        self.s.send(request.encode())
+        # Threat the socket as a file stream.
+        worker = self.s.makefile(mode="rw")
+        # Process the request..
+        worker.write(request)
+        worker.flush()
 
     def server_receive(self):
-        res = self.s.recv(2048)
+        # Threat the socket as a file stream.
+        worker = self.s.makefile(mode="rw")
+        # Read the request in a serialized form (JSON).
+        res = worker.readline()
+        worker.flush()
+        worker.close()
+        print(res)
+        res = json.loads(res)
+        print(res)
         self.s.close()
-        res = json.loads(res.decode())
         return res 
     
     def remote_method_invokation(self, method, args=[]):
