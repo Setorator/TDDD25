@@ -126,6 +126,7 @@ class Request(threading.Thread):
         """
         try:
             value = json.loads(request)
+            print(value)
             if (value["method"] == "read"):
                 res = json.dumps(
                     {

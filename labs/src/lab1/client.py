@@ -73,28 +73,6 @@ class DatabaseProxy(object):
         self.address = server_address
 
     # Public methods
-
-    def server_send(self, request):
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.connect(self.address)
-        # Threat the socket as a file stream.
-        worker = self.s.makefile(mode="rw")
-        # Process the request..
-        worker.write(request)
-        worker.flush()
-
-    def server_receive(self):
-        # Threat the socket as a file stream.
-        worker = self.s.makefile(mode="rw")
-        # Read the request in a serialized form (JSON).
-        res = worker.readline()
-        worker.flush()
-        worker.close()
-        print(res)
-        res = json.loads(res)
-        print(res)
-        self.s.close()
-        return res 
     
     def remote_method_invokation(self, method, args=[]):
         message = json.dumps(
@@ -104,9 +82,21 @@ class DatabaseProxy(object):
             })
         message += "\n"
         
-        # Send message
-        self.server_send(message)
-        return self.server_receive()
+        # Open socket and treat as a file stream
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(self.address)
+        worker = s.makefile(mode="rw")
+
+        # Send message to server
+        worker.write(message)
+        worker.flush()
+        
+        # Receive the respons from the server and close the connection
+        response = worker.readline()
+        s.close()
+
+        return json.loads(response)
+
 
     def handle_server_response(self, response):
         if ("result" in response):
@@ -126,9 +116,6 @@ class DatabaseProxy(object):
         return self.handle_server_response(response)
         
     def write(self, fortune):
-        #
-        # Your code here.
-        #
         response = self.remote_method_invokation("write", [fortune])
         return self.handle_server_response(response)
 
