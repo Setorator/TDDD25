@@ -53,17 +53,8 @@ class Stub(object):
     def __init__(self, address):
         self.address = tuple(address)
 
-    def server_send(self, request):
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.connect(self.address)
-        self.s.send(request.encode())
 
-    def server_receive(self):
-        res = self.s.recv(2048)
-        self.s.close()
-        res = json.loads(res.decode())
-        return res 
-    
+        
     def remote_method_invokation(self, method, *args):
         message = json.dumps(
             {
@@ -73,9 +64,22 @@ class Stub(object):
         message += "\n"
         print(method)
         print(args)
-        # Send message
-        self.server_send(message)
-        return self.server_receive()
+
+        # Open socket and treat as a file stream
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(self.address)
+        worker = s.makefile(mode="rw")
+
+        # Send message to server
+        worker.write(message)
+        worker.flush()
+        
+        # Receive the respons from the server and close the connection
+        response = worker.readline()
+        s.close()
+
+        return json.loads(response)
+
 
     def handle_server_response(self, response):
         if ("result" in response):
