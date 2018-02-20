@@ -41,7 +41,11 @@ class PeerList(object):
             for peer_id, peer_addr in peers:
                 if peer_id < self.owner.id:
                     self.register_peer(peer_id, peer_addr)
-                    self.peers[peer_id].register_peer(self.owner.id, self.owner.address)
+                    try:
+                        self.peers[peer_id].register_peer(self.owner.id, self.owner.address)
+                    # If we could not connect, the desired peer might be down
+                    except Exception as e: 
+                        del self.peers[peer_id]
         finally:
             print(str(self.owner.id) + ' initialized correctly!')
             self.lock.release()
@@ -52,9 +56,13 @@ class PeerList(object):
 
         self.lock.acquire()
         try:
-            #
-            # Your code here.
-            #
+            peers = self.get_peers()
+            for peer_id in peers:
+                self.peer(peer_id).unregister_peer(self.owner.id)
+                
+        # The peer might be down and we wont be able to remove us from their list
+        # However, this is not a problem so we could just continue to shut down
+        except Exception as e:
             pass
         finally:
             self.lock.release()

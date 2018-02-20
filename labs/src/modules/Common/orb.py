@@ -62,8 +62,8 @@ class Stub(object):
                 "args": args
             })
         message += "\n"
-        print(method)
-        print(args)
+        #print(method)
+        #print(args)
 
         # Open socket and treat as a file stream
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -77,7 +77,6 @@ class Stub(object):
         # Receive the respons from the server and close the connection
         response = worker.readline()
         s.close()
-
         return json.loads(response)
 
 
@@ -174,12 +173,13 @@ class Skeleton(threading.Thread):
         self.socket.listen(1)
 
     def run(self):
-        try:
-            conn, addr = self.socket.accept()
-            request = Request(self.owner, conn, addr)
-            request.start()
-        except Exception as e:
-            raise e 
+        while True:
+            try:
+                conn, addr = self.socket.accept()
+                request = Request(self.owner, conn, addr)
+                request.start()
+            except Exception as e:
+                raise e 
 
 class Peer:
 

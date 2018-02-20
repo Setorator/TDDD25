@@ -86,10 +86,23 @@ class DistributedLock(object):
         function is called.
 
         """
-        #
-        # Your code here.
-        #
-        pass
+        peers = self.peer_list.get_peers()
+        
+        # If there already exist peers other than ourselves
+        if peers:
+            for peer in peers:
+                self.request[peer] = 0
+            
+        # We are the first peer to connect, take the token
+        else:
+            self.state = TOKEN_HELD
+            print("I got the token!")
+    
+
+        self.request[self.owner.id] = 0
+        self.token = 0
+        self.time += 1
+        
 
     def destroy(self):
         """ The object is being destroyed.
