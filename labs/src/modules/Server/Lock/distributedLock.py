@@ -78,7 +78,7 @@ class DistributedLock(object):
         for peer_id in self.peer_list.get_peers():
             if peer_id < self.owner.id:
                 lower.append(peer_id)
-            else if peer_id > self.owner.id:
+            elif peer_id > self.owner.id:
                 higher.append(peer_id)
         # Return IDs with higher first
         return higher + lower
@@ -129,17 +129,14 @@ class DistributedLock(object):
 
     def register_peer(self, pid):
         """Called when a new peer joins the system."""
-        #
-        # Your code here.
-        #
-        pass
+        self.time += 1
+        self.request[pid] = 0
+        
 
     def unregister_peer(self, pid):
         """Called when a peer leaves the system."""
-        #
-        # Your code here.
-        #
-        pass
+        self.time += 1
+        del self.request[pid]
 
     def acquire(self):
         """Called when this object tries to acquire the lock."""
@@ -151,6 +148,7 @@ class DistributedLock(object):
                 token = self.peer_list.peer(peer_id).__getattr__("request_token")(self.time, self.owner.id)
             # Wait until token is received
             while self.state != TOKEN_PRESENT:
+                continue
                 
         # Enter CS
         self.state = TOKEN_HELD
@@ -160,7 +158,7 @@ class DistributedLock(object):
         """Called when this object releases the lock."""
         print("Releasing the lock...")
         self.state = TOKEN_PRESENT
-        order = get_order()
+        order = self.get_order()
         # Call obtain_token() on the process which we gives the token to
         
 
