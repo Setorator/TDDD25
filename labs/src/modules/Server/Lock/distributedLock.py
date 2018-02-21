@@ -72,6 +72,17 @@ class DistributedLock(object):
         """The reverse operation to the one above."""
         return dict(token)
 
+    def get_order(self):
+        higher = []
+        lower = []
+        for peer_id in self.peer_list.get_peers():
+            if peer_id < self.owner.id:
+                lower.append(peer_id)
+            else if peer_id > self.owner.id:
+                higher.append(peer_id)
+        # Return IDs with higher first
+        return higher + lower
+
     # Public methods
 
     def initialize(self):
@@ -133,25 +144,33 @@ class DistributedLock(object):
     def acquire(self):
         """Called when this object tries to acquire the lock."""
         print("Trying to acquire the lock...")
-        #
-        # Your code here.
-        #
-        pass
+        self.time += 1
+        if self.state == NO_TOKEN:
+            peers = self.peer_list.get_peers()
+            for peer_id in peers:
+                token = self.peer_list.peer(peer_id).__getattr__("request_token")(self.time, self.owner.id)
+            # Wait until token is received
+            while self.state != TOKEN_PRESENT:
+                
+        # Enter CS
+        self.state = TOKEN_HELD
+        
 
     def release(self):
         """Called when this object releases the lock."""
         print("Releasing the lock...")
-        #
-        # Your code here.
-        #
-        pass
+        self.state = TOKEN_PRESENT
+        order = get_order()
+        # Call obtain_token() on the process which we gives the token to
+        
 
     def request_token(self, time, pid):
         """Called when some other object requests the token from us."""
-        #
-        # Your code here.
-        #
-        pass
+        self.time += 1
+        self.request[pid] = max(self.request[pid], time)
+        if self.state == TOKEN_PRESENT:
+            release()           
+        
 
     def obtain_token(self, token):
         """Called when some other object is giving us the token."""
