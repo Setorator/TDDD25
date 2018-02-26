@@ -85,9 +85,6 @@ class DistributedLock(object):
 
     # Public methods
 
-    def get_token(self):
-        return self.token
-
     def initialize(self):
         """ Initialize the state, request, and token dicts of the lock.
 
