@@ -55,17 +55,15 @@ class PeerList(object):
         """Unregister this peer from all others in the list."""
 
         self.lock.acquire()
-        try:
-            peers = self.get_peers()
-            for peer_id in peers:
-                self.peer(peer_id).unregister_peer(self.owner.id)
-                
-        # The peer might be down and we wont be able to remove us from their list
-        # However, this is not a problem so we could just continue to shut down
-        except Exception as e:
-            pass
-        finally:
-            self.lock.release()
+        for peer_id in self.peers:
+            try:
+                self.peers[peer_id].unregister_peer(self.owner.id)
+            
+            # The peer might be down and we wont be able to remove us from their list
+            # However, this is not a problem so we could just continue to shut down
+            except Exception as e:
+                continue
+        self.lock.release()
 
     def register_peer(self, pid, paddr):
         """Register a new peer joining the network."""
