@@ -132,64 +132,76 @@ class DistributedLock(object):
         give it to someone else.
 
         """
+        self.peer_list.lock.acquire()
         self.time += 1
-        if self.state != NO_TOKEN:
-            self.peer_list.lock.acquire()
-            order = self.get_order()
-            try:
+        try:
+            if self.state != NO_TOKEN:
+                self.peer_list.lock.release()
+                self.release()
+                self.peer_list.lock.acquire()
+
+            # No one to claim the token => Just give it to next in line
+            if self.state == TOKEN_PRESENT:
+                order = self.get_order()
                 for peer_id in order:
                     peer = self.peer_list.peer(peer_id)
                     # Send the token to next in line
+                    self.peer_list.lock.release()
                     peer.obtain_token(self._prepare(self.token))
+                    self.peer_list.lock.acquire()
                     self.state = NO_TOKEN
-                    print("Token sent to: " + str(peer_id))
                     break
-            except Exception as e:
-                print("Could not send token to: " + str(peer_id))
-                print("Exception: {}".format(e))
-            finally:
-                self.peer_list.lock.release()
+        except Exception as e:
+            print("Could not send token")
+            print("Exception: {}".format(e))
+        finally:
+            self.peer_list.lock.release()
         
         
             
 
     def register_peer(self, pid):
         """Called when a new peer joins the system."""
+        self.peer_list.lock.acquire()
         self.time += 1
         self.request[pid] = 0
         self.token[pid] = 0
+        self.peer_list.lock.release()
         
 
     def unregister_peer(self, pid):
         """Called when a peer leaves the system."""
+        self.peer_list.lock.acquire()
         self.time += 1
         del self.request[pid]
         del self.token[pid]
+        self.peer_list.lock.release()
 
     def acquire(self):
         """Called when this object tries to acquire the lock."""
         print("Trying to acquire the lock...")
+        self.peer_list.lock.acquire()        
         self.time += 1
-        self.peer_list.lock.acquire()
         if self.state == NO_TOKEN:
            
             peers = self.peer_list.get_peers()
-             # The lock is not needed during the time consuming message-sending-process
-            self.peer_list.lock.release()
             for peer_id in peers:
                 try:
+                    # We need to release the lock in order for the called peer to not lock down
+                    # Otherwise the other peer would lock-down but would not be able to access 
+                    # the time and id sent from us, thus would not be able to continue to function
+                    # while we have not released the lock.
+                    self.peer_list.lock.release()
                     self.peer_list.peer(peer_id).request_token(self.time, self.owner.id)
+                    self.peer_list.lock.acquire()
                 except Exception as e:
                     # Peer has failed and is down, remove it
-                    self.peer_list.lock.acquire()
                     del self.request[peer_id]
                     del self.token[peer_id]
                     self.peer_list.unregister_peer(peer_id)
-                    self.peer_list.lock.release()
                     continue
 
             # Wait until token is received
-            self.peer_list.lock.acquire()
             while self.state != TOKEN_PRESENT:
                 print("Waiting...")
                 self.peer_list.lock.wait() # Suspend peer until notified
@@ -204,38 +216,54 @@ class DistributedLock(object):
     def release(self):
         """Called when this object releases the lock."""
         print("Releasing the lock...")
-        self.time += 1
         # Lock list since we do not want any modifications to the list while we try to send token
         self.peer_list.lock.acquire()
+        self.time += 1
 
         # If we released the token ourselves then update token times
         if self.state == TOKEN_HELD:
             self.token[self.owner.id] = self.time
             self.state = TOKEN_PRESENT
 
-        order = self.get_order()
-        try:
-            for peer_id in order:
-                peer = self.peer_list.peer(peer_id)
-                if self.request[peer_id] > self.token[peer_id]:
-                    # Send the token
-                    peer.obtain_token(self._prepare(self.token))
-                    self.state = NO_TOKEN
-                    print("Token sent to: " + str(peer_id))
-                    break
-            if self.state == TOKEN_PRESENT:
-                print("No one claimed the token.")
-        except Exception as e:
-            print("Could not send token to: " + str(peer_id))
-            print("Exception: {}".format(e))
-        finally:
-            self.peer_list.lock.release()
+        if self.state == TOKEN_PRESENT:
+            order = self.get_order()
+            try:
+                for peer_id in order:
+                    peer = self.peer_list.peer(peer_id)
+                    if self.request[peer_id] > self.token[peer_id]:
+                        try:
+                            # Try to send the token
+                            self.peer_list.lock.release()
+                            peer.obtain_token(self._prepare(self.token))
+                            self.peer_list.lock.acquire()
+                            self.state = NO_TOKEN
+                            print("Token sent to: " + str(peer_id))
+                            break
+                        except Exception:
+                            # If we could not send the token, remove it and continue to the next peer
+                            print("Could not send token to: {}".format(peer_id))
+                            self.state = TOKEN_PRESENT
+                            del self.request[peer_id]
+                            del self.token[peer_id]
+                            self.peer_list.unregister_peer(peer_id)
+                            continue
+
+                # If no one has claimed the token
+                if self.state == TOKEN_PRESENT:
+                    print("No one claimed the token.")
+            except Exception as e:
+                # Unexpected error
+                print("Exception: {}".format(e))
+            finally:
+                self.peer_list.lock.release()
         
 
     def request_token(self, time, pid):
         """Called when some other object requests the token from us."""
+        self.peer_list.lock.acquire()
         self.time = max(self.time+1, time+1)
-        self.request[pid] = max(self.request[pid], time)
+        self.request[pid] = max(self.request[pid], self.time)
+        self.peer_list.lock.release() # self.release() acquire lock on its own
         if self.state == TOKEN_PRESENT:
             self.release()           
         
@@ -243,8 +271,8 @@ class DistributedLock(object):
     def obtain_token(self, token):
         """Called when some other object is giving us the token."""
         print("Receiving the token...")
-        self.time += 1
         self.peer_list.lock.acquire()
+        self.time += 1
         try:
             msg = self._unprepare(token)
             for peer_id in msg:
