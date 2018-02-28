@@ -134,16 +134,17 @@ class DistributedLock(object):
         """
         self.peer_list.lock.acquire()
         self.time += 1
-        try:
-            if self.state != NO_TOKEN:
-                self.peer_list.lock.release()
-                self.release()
-                self.peer_list.lock.acquire()
+        # release has its own try-catch
+        if self.state != NO_TOKEN:
+            self.peer_list.lock.release()
+            self.release()
+            self.peer_list.lock.acquire()
 
-            # No one to claim the token => Just give it to next in line
-            if self.state == TOKEN_PRESENT:
-                order = self.get_order()
-                for peer_id in order:
+        # No one to claim the token => Just give it to next in line
+        if self.state == TOKEN_PRESENT:
+            order = self.get_order()
+            for peer_id in order:
+                try:
                     peer = self.peer_list.peer(peer_id)
                     # Send the token to next in line
                     self.peer_list.lock.release()
@@ -151,11 +152,13 @@ class DistributedLock(object):
                     self.peer_list.lock.acquire()
                     self.state = NO_TOKEN
                     break
-        except Exception as e:
-            print("Could not send token")
-            print("Exception: {}".format(e))
-        finally:
-            self.peer_list.lock.release()
+                except Exception as e:
+                    # There is no need to remove it since we are about to remove the whole list anyway.
+                    print("Could not send token. Peer is down.")
+                    self.peer_list.lock.acquire()
+                    continue
+                        
+        self.peer_list.lock.release()
         
         
             
@@ -193,13 +196,17 @@ class DistributedLock(object):
                     # while we have not released the lock.
                     self.peer_list.lock.release()
                     self.peer_list.peer(peer_id).request_token(self.time, self.owner.id)
-                    self.peer_list.lock.acquire()
+                    
                 except Exception as e:
                     # Peer has failed and is down, remove it
+                    self.peer_list.lock.acquire()
                     del self.request[peer_id]
                     del self.token[peer_id]
-                    self.peer_list.unregister_peer(peer_id)
-                    continue
+                    self.peer_list.unregister_peer(peer_id)                    
+                    self.peer_list.lock.release()
+                finally:
+                    self.peer_list.lock.acquire()
+                    
 
             # Wait until token is received
             while self.state != TOKEN_PRESENT:
